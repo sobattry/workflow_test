@@ -1,0 +1,26 @@
+name: Fetch and Split Model
+
+on:
+  workflow_dispatch: # Allows you to run this manually
+
+jobs:
+  download_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Model from Hugging Face
+        run: |
+          wget -O model.bin "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/model.bin?download=true"
+      
+      - name: Split Model into 1GB chunks
+        run: |
+          # Splits the file into chunks named model.bin.part_aa, model.bin.part_ab, etc.
+          split -b 1000M model.bin model.bin.part_
+      
+      - name: Create Release and Upload Chunks
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: "faster-whisper-v3"
+          name: "Faster Whisper Large V3"
+          files: model.bin.part_*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
