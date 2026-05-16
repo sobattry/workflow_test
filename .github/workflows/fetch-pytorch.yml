@@ -1,0 +1,31 @@
+name: Fetch and Split PyTorch Wheel
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write 
+
+jobs:
+  download_and_release:
+    runs-on: ubuntu-latest
+    steps:
+      # REQUIRED: This tells the GitHub CLI which repository to use
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download PyTorch Wheel
+        run: |
+          wget -O torch-2.0.1.whl "https://download.pytorch.org/whl/cu118/torch-2.0.1%2Bcu118-cp311-cp311-linux_x86_64.whl"
+      
+      - name: Split Wheel into 500MB chunks
+        run: |
+          split -b 500M torch-2.0.1.whl torch-2.0.1.whl.part_
+      
+      - name: Create Release and Upload Chunks via GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "torch-2.0.1-cu118-${{ github.run_id }}" torch-2.0.1.whl.part_* \
+            --title "PyTorch 2.0.1 cu118 (Python 3.11)" \
+            --notes "Downloaded torch-2.0.1+cu118-cp311-cp311-linux_x86_64.whl (~2.3 GB) and split into 500MB chunks."
