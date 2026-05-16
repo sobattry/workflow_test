@@ -3,7 +3,6 @@ name: Fetch and Split Model
 on:
   workflow_dispatch:
 
-# Give the workflow permission to create a release
 permissions:
   contents: write 
 
@@ -11,20 +10,22 @@ jobs:
   download_and_release:
     runs-on: ubuntu-latest
     steps:
+      # REQUIRED: This tells the GitHub CLI which repository to use
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Download Model from Hugging Face
         run: |
           wget -O model.bin "https://huggingface.co/Systran/faster-whisper-large-v3/resolve/main/model.bin?download=true"
       
       - name: Split Model into 500MB chunks
         run: |
-          # Smaller chunks prevent the "Too many retries" upload error
           split -b 500M model.bin model.bin.part_
       
       - name: Create Release and Upload Chunks via GitHub CLI
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Uses the official GitHub CLI instead of the deprecated Node.js action
           gh release create "faster-whisper-v3-${{ github.run_id }}" model.bin.part_* \
             --title "Faster Whisper Large V3" \
             --notes "Downloaded and split into 500MB chunks."
